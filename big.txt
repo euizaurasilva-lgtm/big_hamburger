@@ -1,0 +1,111 @@
+[27/08/2026 16:58] RuidoZeroDefiVip: function renderSalesMetrics() {
+      const total = completedOrders.reduce((sum, o) => sum + o.total, 0);
+      const count = completedOrders.length;
+      const avg = count > 0 ? total / count : 0;
+      document.getElementById('stat-total-sales').innerText = formatMoney(total);
+      document.getElementById('stat-total-orders').innerText = count;
+      document.getElementById('stat-avg-ticket').innerText = formatMoney(avg);
+    }
+
+    // Garçom
+    function unlockWaiterScreen() {
+      const pin = document.getElementById('waiter-pin-input').value;
+      if (pin === storeConfig.waiterPin) {
+        document.getElementById('waiter-pin-lock').classList.add('hidden');
+        document.getElementById('waiter-content').classList.remove('hidden');
+        renderTables();
+      } else {
+        alert("PIN incorreto! (Padrão: 1234)");
+      }
+    }
+
+    function lockWaiterScreen() {
+      document.getElementById('waiter-pin-input').value = "";
+      document.getElementById('waiter-pin-lock').classList.remove('hidden');
+      document.getElementById('waiter-content').classList.add('hidden');
+    }
+
+    function renderTables() {
+      const grid = document.getElementById('tables-grid');
+      grid.innerHTML = tables.map(t => 
+        <div onclick="openTableModal(${t.id})" class="bg-charcoalCard border ${t.occupied ? 'border-amberGold' : 'border-charcoalBorder'} p-4 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer hover:border-brightOrange transition">
+          <span class="text-base font-black text-white">Mesa ${t.id < 10 ? '0' + t.id : t.id}</span>
+          <span class="text-[10px] font-bold ${t.occupied ? 'text-amberGold' : 'text-gray-500'}">${t.occupied ? 'OCUPADA' : 'LIVRE'}</span>
+          ${t.occupied ? <span class="text-xs font-black text-brightOrange mt-1">${formatMoney(t.total)}</span> : ''}
+        </div>
+      ).join('');
+    }
+
+    function openTableModal(tableId) {
+      const t = tables.find(x => x.id === tableId);
+      const action = prompt(Mesa ${tableId} (${t.occupied ? 'OCUPADA - ' + formatMoney(t.total) : 'LIVRE'})\n\nDigite:\n1 - Adicionar Consumo\n2 - Fechar Conta);
+      if (action === "1") {
+        const val = parseFloat(prompt("Valor do item lançado (R$):", "35.00"));
+        if (val) {
+          t.occupied = true;
+          t.total += val;
+          renderTables();
+        }
+      } else if (action === "2" && t.occupied) {
+        alert(Conta da Mesa ${tableId} encerrada no valor de ${formatMoney(t.total)}!);
+        t.occupied = false;
+        t.total = 0;
+        renderTables();
+      }
+    }
+
+    // Impressão ESC/POS Térmica
+    function printTestReceipt(size = '58mm') {
+      const content = 
+================================
+     ${storeConfig.storeName.toUpperCase()}
+       CUPOM DE TESTE
+================================
+Data: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}
+Largura Bobina: ${size}
+--------------------------------
+1x Big Burger Duplo    R$ 38,00
+1x Batata Rústica      R$ 24,00
+--------------------------------
+TOTAL:                 R$ 62,00
+PAGAMENTO:             PIX
+================================
+  CHAVE PIX: ${storeConfig.pixKey}
+================================
+;
+      document.getElementById('printable-receipt').innerHTML = <pre>${content}</pre>;
+      window.print();
+    }
+
+    function printOrder(idx) {
+      const o = activeOrders[idx];
+      let content = 
+================================
+     ${storeConfig.storeName.toUpperCase()}
+================================
+PEDIDO #${o.number} • ${o.type}
+Data: ${o.time}
+Cliente: ${o.customerName}
+--------------------------------
+;
+      o.items.forEach(i => {
+        content += ${i.qty}x ${i.product.name} - ${formatMoney(i.product.price * i.qty)}\n;
+      });
+      content += --------------------------------
+TOTAL: ${formatMoney(o.total)}
+PAGAMENTO: ${o.payment}
+================================
+;
+      document.getElementById('printable-receipt').innerHTML = <pre>${content}</pre>;
+      window.print();
+    }
+[27/08/2026 16:58] RuidoZeroDefiVip: // Inicialização
+    document.getElementById('header-store-name').innerText = storeConfig.storeName;
+    document.getElementById('banner-address-txt').innerText = storeConfig.address;
+    renderCategories();
+    renderProducts();
+    renderKDS();
+    updateCartUI();
+  </script>
+</body>
+</html>
